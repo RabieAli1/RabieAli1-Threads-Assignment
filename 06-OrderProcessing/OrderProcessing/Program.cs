@@ -1,3 +1,4 @@
+using OrderProcessing.Shared.Logging;
 using OrderProcessing.Shared.Storage;
 
 namespace OrderProcessing;
@@ -6,11 +7,16 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        Console.WriteLine("Order Processing System Initialized.");
-        Console.WriteLine($"Data directory: {DataFiles.DataDirectory}");
+        Log.Info("Order Processing System Initialized.");
+        Log.Info($"Data directory: {DataFiles.DataDirectory}");
+
+        Log.Info("CustomerRepository -> Opening connection...");
+        Log.Info("CustomerRepository -> Executing query for Customer #3...");
+        Log.Success("CustomerRepository -> Customer #3 found (Omar Hassan)");
+        Log.Error("CustomerRepository -> Connection timeout");
 
         Console.WriteLine("\nTesting DataSeeder.ResetAsync()...");
         await DataSeeder.ResetAsync();
-        Console.WriteLine("Data seeded successfully.");
+        Log.Success("Data seeded successfully.");
     }
 }
