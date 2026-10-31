@@ -35,3 +35,4 @@ public static class BlockingDemo
         Log.Success("Danger summary: Thread wasted while idle; risk of deadlocks with SynchronizationContext; unhandled exceptions wrapped in AggregateException.");
     }
 }
+

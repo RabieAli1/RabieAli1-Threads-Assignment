@@ -1,5 +1,7 @@
 using OrderProcessing.Phase1;
 using OrderProcessing.Phase2;
+using OrderProcessing.Phase3;
+using OrderProcessing.Phase4;
 using OrderProcessing.Shared;
 using OrderProcessing.Shared.Logging;
 using OrderProcessing.Shared.Storage;
@@ -49,15 +51,17 @@ public class Program
                 await Phase2Runner.RunAsync(ct);
                 break;
             case "phase3":
-                Log.Info("Executing Phase 3...");
+                await Phase3Runner.RunAsync(ct);
                 break;
             case "phase4":
-                Log.Info("Executing Phase 4...");
+                await Phase4Runner.RunAsync(ct);
                 break;
             case "all":
                 Log.Info("Executing All Phases sequentially...");
                 await Phase1Runner.RunAsync(ct);
                 await Phase2Runner.RunAsync(ct);
+                await Phase3Runner.RunAsync(ct);
+                await Phase4Runner.RunAsync(ct);
                 break;
             case "seed":
                 await DataSeeder.ResetAsync(ct: ct);

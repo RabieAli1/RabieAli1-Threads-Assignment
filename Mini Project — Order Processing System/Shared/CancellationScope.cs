@@ -48,3 +48,4 @@ public sealed class CancellationScope : IDisposable
         _cts.Dispose();
     }
 }
+

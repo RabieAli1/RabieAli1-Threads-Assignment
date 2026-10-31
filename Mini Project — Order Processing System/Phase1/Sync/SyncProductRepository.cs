@@ -66,4 +66,14 @@ public class SyncProductRepository
 
         return true;
     }
+
+    public List<Product> GetAll()
+    {
+        Log.Info("SyncProductRepository -> Opening connection...");
+        Thread.Sleep(SimulatedDelays.DbQueryOpenConnection);
+        Log.Info("SyncProductRepository -> Executing query for all products...");
+        Thread.Sleep(SimulatedDelays.DbQueryExecute());
+        return _store.ReadAll<Product>(DataFiles.Products);
+    }
 }
+

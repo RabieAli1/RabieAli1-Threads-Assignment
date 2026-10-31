@@ -35,18 +35,18 @@ public class OrderRepository
             throw new DatabaseWriteException("Connection lost during commit");
         }
 
-        var orders = await _store.ReadAllAsync<Order>(DataFiles.Orders, ct).ConfigureAwait(false);
-        int index = orders.FindIndex(o => o.Id == order.Id);
-        if (index >= 0)
+        await _store.UpdateAsync<Order>(DataFiles.Orders, orders =>
         {
-            orders[index] = order;
-        }
-        else
-        {
-            orders.Add(order);
-        }
-
-        await _store.WriteAllAsync(DataFiles.Orders, orders, ct).ConfigureAwait(false);
+            int index = orders.FindIndex(o => o.Id == order.Id);
+            if (index >= 0)
+            {
+                orders[index] = order;
+            }
+            else
+            {
+                orders.Add(order);
+            }
+        }, ct).ConfigureAwait(false);
 
         Log.Info("OrderRepository -> Committing transaction...");
         await Task.Delay(SimulatedDelays.DbWriteCommit, ct).ConfigureAwait(false);

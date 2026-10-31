@@ -27,3 +27,4 @@ public static class SimulatedDelays
     public const int EmailConnectSmtp = 300;
     public const int EmailSend = 500;
 }
+
