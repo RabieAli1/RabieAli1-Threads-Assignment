@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace OrderProcessing.Shared.Storage;
 
 public static class DataFiles
@@ -13,9 +16,18 @@ public static class DataFiles
     public const string InvoicesDirectory = "invoices";
     public const string ReportsDirectory = "reports";
 
+    public const string EmptyJsonArray = "[]";
+
     public static string DataDirectory => Path.Combine(AppContext.BaseDirectory, "Data");
     public static string InvoicesPath => Path.Combine(DataDirectory, InvoicesDirectory);
     public static string ReportsPath => Path.Combine(DataDirectory, ReportsDirectory);
 
     public static string GetFilePath(string fileName) => Path.Combine(DataDirectory, fileName);
+
+    public static readonly JsonSerializerOptions SerializerOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() }
+    };
 }

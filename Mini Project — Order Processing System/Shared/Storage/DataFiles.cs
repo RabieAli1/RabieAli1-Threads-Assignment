@@ -24,12 +24,6 @@ public static class DataFiles
 
     public static string GetFilePath(string fileName) => Path.Combine(DataDirectory, fileName);
 
-    /// <summary>
-    /// Shared JsonSerializerOptions configured according to specification:
-    /// - WriteIndented = true
-    /// - PropertyNamingPolicy = CamelCase
-    /// - JsonStringEnumConverter to serialize enums as strings
-    /// </summary>
     public static readonly JsonSerializerOptions SerializerOptions = new()
     {
         WriteIndented = true,
@@ -37,4 +31,3 @@ public static class DataFiles
         Converters = { new JsonStringEnumConverter() }
     };
 }
-

@@ -6,7 +6,11 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        Console.WriteLine($"Order Processing System Initialized.");
+        Console.WriteLine("Order Processing System Initialized.");
         Console.WriteLine($"Data directory: {DataFiles.DataDirectory}");
+
+        Console.WriteLine("\nTesting DataSeeder.ResetAsync()...");
+        await DataSeeder.ResetAsync();
+        Console.WriteLine("Data seeded successfully.");
     }
 }
