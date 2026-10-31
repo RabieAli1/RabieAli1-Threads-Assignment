@@ -140,19 +140,32 @@ public class Phase2Runner
         var rejectedCount = allFinalOrders.Count(o => o.Status == OrderStatus.Rejected);
         var failedCount = allFinalOrders.Count(o => o.Status == OrderStatus.Failed);
 
-        Console.WriteLine("\n===== Phase 2 Final orders.json Summary =====");
+        Console.WriteLine("\n===== Phase 2 Final orders.json Summary ===== ");
         Console.WriteLine($"Total Records in orders.json: {allFinalOrders.Count} (Expected: 20)");
         Console.WriteLine($"Completed: {completedCount} (Expected: 13)");
         Console.WriteLine($"Rejected:  {rejectedCount} (Expected: 6)");
         Console.WriteLine($"Failed:    {failedCount} (Expected: 1 - Order #7)");
 
-        if (allFinalOrders.Count == 20 && completedCount == 13 && rejectedCount == 6 && failedCount == 1)
-        {
-            Log.Success("PHASE 2 BATCH PROCESSED PERFECTLY: Exactly 13 Completed, 6 Rejected, 1 Failed (#7)!");
-        }
-        else
-        {
-            Log.Error($"Discrepancy detected: Completed={completedCount}, Rejected={rejectedCount}, Failed={failedCount}, Total={allFinalOrders.Count}");
-        }
+        // Step 8: Task 8.6 Report generation
+        Log.Info("\n[Task 8.6] Starting Report Generation as a Task<Report>...");
+        var reportGenerator = new ReportGenerator(orderRepo, productRepo);
+        var reportTask = reportGenerator.GenerateAsync(ct);
+        Console.WriteLine("Generating report...");
+        var report = await reportTask.ConfigureAwait(false);
+
+        Console.WriteLine("\n==================== EXECUTIVE SUMMARY REPORT ====================");
+        Console.WriteLine($"Generated At:            {report.GeneratedAt:yyyy-MM-dd HH:mm:ss}");
+        Console.WriteLine($"Total Orders Processed:  {report.TotalOrders}");
+        Console.WriteLine($"Completed Orders:        {report.CompletedCount}");
+        Console.WriteLine($"Rejected Orders:         {report.RejectedCount}");
+        Console.WriteLine($"Failed Orders:           {report.FailedCount}");
+        Console.WriteLine($"Payment Failed Orders:   {report.PaymentFailedCount}");
+        Console.WriteLine($"Total Revenue:           ${report.TotalRevenue:F2}");
+        Console.WriteLine($"Average Order Value:     ${report.AverageOrderValue:F2}");
+        Console.WriteLine($"Top Selling Product:     {report.TopSellingProduct} ({report.TopSellingQuantity} units)");
+        Console.WriteLine("==================================================================");
+
+        // Blocking .Result / .Wait() Demo for README Question 3
+        BlockingDemo.RunDemo();
     }
 }

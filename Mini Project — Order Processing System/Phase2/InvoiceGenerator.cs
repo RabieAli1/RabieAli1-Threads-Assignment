@@ -48,3 +48,4 @@ public class InvoiceGenerator
         Log.Success($"InvoiceGenerator -> Invoice saved to {Path.GetFileName(invoiceFilePath)}");
     }
 }
+

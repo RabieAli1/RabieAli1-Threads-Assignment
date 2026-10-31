@@ -131,3 +131,44 @@ Repository methods perform I/O operations against disks, databases, or remote se
 - **Difference:** `File.ReadAllText` issues a synchronous system call that halts the executing thread until the disk read finishes. In contrast, `File.ReadAllTextAsync` issues an asynchronous I/O request using OS completion mechanisms (such as Windows I/O Completion Ports - IOCP / overlapped I/O) and returns a `Task<string>`.
 - **Does it occupy a thread?** **No.** While the physical storage controller reads data and transfers it via DMA (Direct Memory Access) into memory, zero CPU threads are allocated or blocked. When the transfer finishes, the hardware interrupt alerts the kernel, which queues an IOCP packet, prompting the .NET ThreadPool to awaken a thread only to handle the completion callback.
 
+
+
+---
+
+## 6. Phase 2 Questions & Answers
+
+### Q1: What is the difference between starting a task and awaiting it?
+- **Starting a Task:** Initiates or schedules the asynchronous operation. The task begins executing in the background concurrently while the calling thread immediately continues executing subsequent code without waiting.
+- **Awaiting a Task (`await task`):** Asynchronously pauses execution of the enclosing method until the awaited task completes. Crucially, it does not block the thread; it yields the thread back to the runtime/ThreadPool. When the task finishes, execution resumes, unpacking the result `T` directly or unwrapping any thrown exception.
+
+### Q2: Does every Task create a new thread? Does Task.Delay() use a thread while waiting?
+- **Does every Task create a new thread?** **No.** A `Task` is an abstraction representing an ongoing asynchronous operation or future result. CPU-bound tasks reuse worker threads from the .NET `ThreadPool`. Purely asynchronous I/O operations (such as file I/O or network requests) do not require any thread while waiting for hardware.
+- **Does `Task.Delay()` use a thread while waiting?** **No.** `Task.Delay()` registers a callback with an OS system timer (e.g. Windows timer queue) and immediately yields the calling thread back to the `ThreadPool`. No thread is blocked or consumed during the delay period. When the timer expires, the thread pool assigns an available thread to resume execution.
+
+### Q3: What happens if you call .Result or .Wait() on an unfinished task instead of await? Why is it dangerous? Write a small separate demo method — the only place .Result / .Wait() is allowed.
+- **What happens:** Calling `.Result` or `.Wait()` forces the current thread to block synchronously until the task completes.
+- **Why it is dangerous:**
+  1. **Deadlocks:** In synchronization contexts that enforce a single thread (such as classic ASP.NET, WPF, or WinForms), the continuation of the async method must run on the original thread. Since that thread is blocked waiting for `.Result`, the continuation can never execute, resulting in a permanent deadlock.
+  2. **Thread Pool Starvation:** Synchronously blocking worker threads wastes system resources, degrading scalability and causing queuing delays under high concurrent load.
+  3. **Error Handling Complexity:** Exceptions are wrapped in an `AggregateException` rather than thrown directly as with `await`.
+- **Demo Method:** Implemented in [`BlockingDemo.RunDemo()`](file:///c:/Users/RABIE%20ALI/Desktop/pro/RabieAli1-Threads-Assignment/06-OrderProcessing/OrderProcessing/Phase2/BlockingDemo.cs).
+
+### Q4: What happens to an exception thrown inside a task that is never awaited?
+- The exception is captured inside the `Task` object. If the task is never awaited and its `.Exception` property is never inspected, the exception remains unobserved. When the unobserved `Task` is eventually garbage collected, the finalizer triggers the `TaskScheduler.UnobservedTaskException` event. The failure goes completely unnoticed by application business logic, leading to silent failures and state inconsistencies.
+
+### Q5: When should you use Task.Run(), and when should you avoid it?
+- **When to Use:** Use `Task.Run()` for **CPU-bound operations** (such as complex mathematical algorithms, PDF rendering, image processing, or data compression) to offload heavy computation from the calling thread to a background `ThreadPool` worker thread.
+- **When to Avoid:** Avoid `Task.Run()` for **I/O-bound operations** (such as database queries, network calls, or file reads). Wrapping blocking I/O calls in `Task.Run()` is the "Sync-Over-Async" anti-pattern, which needlessly ties up thread pool worker threads in an idle blocked state, leading to ThreadPool starvation.
+
+### Q6: What is the difference between Task and Task<T>?
+- `Task`: Represents an asynchronous operation that does not return a value (the asynchronous counterpart to `void`).
+- `Task<T>`: A generic subclass of `Task` representing an asynchronous operation that produces a value of type `T` upon completion. Awaiting `Task<T>` extracts the return value `T`.
+
+### Q7: Why can a lock block not contain an await?
+- C# prohibits `await` inside a `lock` block (compiler error CS1996).
+- **Reason:** C#'s `lock` is based on `Monitor.Enter` and `Monitor.Exit`, which strictly require **thread affinity** — the exact same thread that acquired the lock must be the one that releases it. When an `await` is encountered, the calling thread is released back to the `ThreadPool`. When the awaited operation completes, continuation may resume on a different thread. If this occurred inside a lock, the second thread would attempt to release a lock it did not acquire, throwing `SynchronizationLockException`.
+- **Solution:** Use asynchronous synchronization primitives like `SemaphoreSlim.WaitAsync()` and `SemaphoreSlim.Release()`, which do not enforce thread affinity.
+
+### Q8: Why did the unprotected stock reservation oversell, and how did you prevent it?
+- **Why it oversold:** In `ReserveStockUnsafeAsync`, orders #10 and #11 ran concurrently. Both tasks read `StockQuantity = 1` from `products.json` before either task had written back its updated stock. During the 700 ms latency window (open connection 200ms + begin transaction 100ms + update 400ms), both tasks evaluated that stock was sufficient ($\ge 1$). Task 10 deducted 1 and saved stock = 0, and Task 11 (which had read 1 previously) also deducted 1 and saved stock = 0. Both orders returned `true`, resulting in 2 units sold when only 1 existed in inventory (a classic race condition and lost update).
+- **How we prevented it:** We wrapped the entire read-modify-write operation with a `SemaphoreSlim(1, 1)` in `ReserveStockAsync`. This serialized access so that only one order could enter the reservation block at any time. Order #10 reserved the unit, reduced stock to 0, and committed. When Order #11 acquired the lock, it re-read the updated stock (0), detected that $0 < 1$, and correctly failed with `false`.
