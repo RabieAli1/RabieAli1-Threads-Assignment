@@ -55,12 +55,11 @@ public class EmailService : IEmailService
             LastError = null
         };
 
-        var emails = await _store.ReadAllAsync<EmailMessage>(DataFiles.Emails, ct).ConfigureAwait(false);
-        emails.Add(email);
-        await _store.WriteAllAsync(DataFiles.Emails, emails, ct).ConfigureAwait(false);
+        await _store.AppendAsync(DataFiles.Emails, email, ct).ConfigureAwait(false);
 
         Log.Success($"EmailService -> Confirmation email sent to {customer.Email} for Order #{order.Id} (Attempts: {attempt})");
     }
 
     public int GetAttempts(int orderId) => _attempts.TryGetValue(orderId, out int c) ? c : 0;
 }
+

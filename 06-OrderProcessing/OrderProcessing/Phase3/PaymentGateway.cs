@@ -46,9 +46,7 @@ public class PaymentGateway : IPaymentGateway
                 CreatedAt = DateTime.Now
             };
 
-            var payments = await _store.ReadAllAsync<PaymentTransaction>(DataFiles.Payments, ct).ConfigureAwait(false);
-            payments.Add(declinedTxn);
-            await _store.WriteAllAsync(DataFiles.Payments, payments, ct).ConfigureAwait(false);
+            await _store.AppendAsync(DataFiles.Payments, declinedTxn, ct).ConfigureAwait(false);
 
             return new PaymentResult
             {
@@ -75,9 +73,7 @@ public class PaymentGateway : IPaymentGateway
             CreatedAt = DateTime.Now
         };
 
-        var allPayments = await _store.ReadAllAsync<PaymentTransaction>(DataFiles.Payments, ct).ConfigureAwait(false);
-        allPayments.Add(capturedTxn);
-        await _store.WriteAllAsync(DataFiles.Payments, allPayments, ct).ConfigureAwait(false);
+        await _store.AppendAsync(DataFiles.Payments, capturedTxn, ct).ConfigureAwait(false);
 
         Log.Success($"PaymentGateway -> Order #{orderId} Captured ({transactionId})");
         return new PaymentResult
@@ -104,13 +100,19 @@ public class PaymentGateway : IPaymentGateway
         Log.Info($"PaymentGateway -> [Refund API] Waiting for refund response for {transactionId}...");
         await Task.Delay(SimulatedDelays.ExternalApiWaitForResponse(), ct).ConfigureAwait(false);
 
-        var payments = await _store.ReadAllAsync<PaymentTransaction>(DataFiles.Payments, ct).ConfigureAwait(false);
-        var txn = payments.FirstOrDefault(p => string.Equals(p.TransactionId, transactionId, StringComparison.OrdinalIgnoreCase));
-
-        if (txn != null)
+        bool found = false;
+        await _store.UpdateAsync<PaymentTransaction>(DataFiles.Payments, payments =>
         {
-            txn.Status = PaymentStatus.Refunded;
-            await _store.WriteAllAsync(DataFiles.Payments, payments, ct).ConfigureAwait(false);
+            var txn = payments.FirstOrDefault(p => string.Equals(p.TransactionId, transactionId, StringComparison.OrdinalIgnoreCase));
+            if (txn != null)
+            {
+                txn.Status = PaymentStatus.Refunded;
+                found = true;
+            }
+        }, ct).ConfigureAwait(false);
+
+        if (found)
+        {
             Log.Success($"PaymentGateway -> Transaction {transactionId} refunded successfully in payments.json.");
         }
         else
