@@ -16,3 +16,4 @@ public class DataFileCorruptedException : Exception
         FileName = fileName;
     }
 }
+

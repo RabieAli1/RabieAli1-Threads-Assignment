@@ -30,6 +30,51 @@ public class PricingService
     }
 
     /// <summary>
+    /// Phase 3 method: 1 DB query (SubTotal) + 2 concurrent APIs (Discount & Shipping).
+    /// Fills all money fields (SubTotal, Discount, ShippingCost, TotalAmount) according to 8.1.
+    /// Throws InvalidCouponException for a missing or expired coupon.
+    /// </summary>
+    public async Task<decimal> CalculateTotalAsync(Order order, CancellationToken ct = default)
+    {
+        Log.Info($"PricingService -> Calculating total for Order #{order.Id} (1 query + 2 concurrent APIs)...");
+
+        // 1. Calculate SubTotal (1 DB query)
+        await CalculateSubTotalAsync(order, ct).ConfigureAwait(false);
+
+        // 2. Validate coupon if present
+        if (!string.IsNullOrWhiteSpace(order.CouponCode))
+        {
+            var coupon = await _couponRepository.GetByCodeAsync(order.CouponCode, ct).ConfigureAwait(false);
+            if (coupon == null)
+            {
+                Log.Error($"PricingService -> Coupon '{order.CouponCode}' does not exist for Order #{order.Id}");
+                throw new InvalidCouponException($"Coupon '{order.CouponCode}' does not exist");
+            }
+
+            if (coupon.ExpiryDate < DateTime.Today)
+            {
+                Log.Error($"PricingService -> Coupon '{order.CouponCode}' has expired for Order #{order.Id}");
+                throw new InvalidCouponException($"Coupon '{order.CouponCode}' has expired");
+            }
+        }
+
+        // 3. Run Discount and Shipping concurrently (2 concurrent APIs)
+        var discountTask = GetDiscountAsync(order, ct);
+        var shippingTask = CalculateShippingCostAsync(order, ct);
+
+        decimal discount = await discountTask.ConfigureAwait(false);
+        decimal shipping = await shippingTask.ConfigureAwait(false);
+
+        // 4. Fill all money fields (8.1)
+        order.Discount = discount;
+        order.ShippingCost = shipping;
+        order.TotalAmount = PricingRules.CalculateTotalAmount(order.SubTotal, discount, shipping);
+
+        Log.Success($"PricingService -> Total calculated for Order #{order.Id}: SubTotal={order.SubTotal:F2}, Discount={order.Discount:F2}, Shipping={order.ShippingCost:F2}, Total={order.TotalAmount:F2}");
+        return order.TotalAmount;
+    }
+
+    /// <summary>
     /// Simulated as DB query: reads products.json, fills UnitPrice for each item, returns SubTotal.
     /// </summary>
     public async Task<decimal> CalculateSubTotalAsync(Order order, CancellationToken ct = default)
@@ -127,4 +172,3 @@ public class PricingService
         return order.ShippingCost;
     }
 }
-
