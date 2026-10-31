@@ -23,4 +23,6 @@ public class Customer
         get => LoyaltyTier;
         set => LoyaltyTier = value;
     }
+
+    public Customer() { }
 }

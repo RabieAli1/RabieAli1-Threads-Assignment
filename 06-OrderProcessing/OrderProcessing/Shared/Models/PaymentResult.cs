@@ -6,5 +6,6 @@ public class PaymentResult
     public string? TransactionId { get; set; }
     public PaymentStatus Status { get; set; }
     public string? Message { get; set; }
-}
 
+    public PaymentResult() { }
+}

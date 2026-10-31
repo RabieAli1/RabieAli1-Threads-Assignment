@@ -16,4 +16,6 @@ public class Product
         get => StockQuantity;
         set => StockQuantity = value;
     }
+
+    public Product() { }
 }

@@ -10,5 +10,6 @@ public class EmailMessage
     public DateTime SentAt { get; set; }
     public int Attempts { get; set; }
     public string? LastError { get; set; }
-}
 
+    public EmailMessage() { }
+}

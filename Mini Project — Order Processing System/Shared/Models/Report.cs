@@ -12,4 +12,6 @@ public class Report
     public int TopSellingQuantity { get; set; }
     public decimal AverageOrderValue { get; set; }
     public DateTime GeneratedAt { get; set; }
+
+    public Report() { }
 }

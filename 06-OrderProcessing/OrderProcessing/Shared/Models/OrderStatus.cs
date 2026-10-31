@@ -9,4 +9,3 @@ public enum OrderStatus
     Completed,
     Failed
 }
-
