@@ -60,3 +60,4 @@ public class OrderPricer
         return order.TotalAmount;
     }
 }
+

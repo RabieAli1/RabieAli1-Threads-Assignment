@@ -62,7 +62,7 @@ All files are stored under `Path.Combine(AppContext.BaseDirectory, "Data")`:
 | **Phase 1: Validation** | Async (Task.Delay) | 52.5 s | 20 orders validated & saved to orders.json sequentially |
 | **Phase 2: Pricing (Order #1)** | Sequential Awaits | 4.78 s | SubTotal -> Discount -> Shipping |
 | **Phase 2: Pricing (Order #1)** | Concurrent Awaits | 3.52 s | SubTotal -> [Discount // Shipping] concurrently (1.36x speedup) |
-| **Phase 2: Full Concurrent Batch** | Concurrent Tasks | TBD | Will be updated in Task 8.4 |
+| **Phase 2: Full Concurrent Batch** | Concurrent Tasks | 23.56 s | 15 validated orders processed concurrently (13 Completed, 1 Rejected keyboard race, 1 Failed shipping) |
 | **Phase 3: Checkout (10 orders)** | Sync (10 Threads) | TBD | Will be updated in Phase 3 |
 | **Phase 3: Checkout (10 orders)** | Async (10 Tasks) | TBD | Will be updated in Phase 3 |
 | **Phase 4: Customer Dashboard** | Single await (WhenAll) | TBD | Will be updated in Phase 4 |
