@@ -64,6 +64,23 @@ All files are stored under `Path.Combine(AppContext.BaseDirectory, "Data")`:
 | **Phase 2: Pricing (Order #1)** | Concurrent Awaits | 3.52 s | SubTotal -> [Discount // Shipping] concurrently (1.36x speedup) |
 | **Phase 2: Full Concurrent Batch** | Concurrent Tasks | 23.56 s | 15 validated orders processed concurrently (13 Completed, 1 Rejected keyboard race, 1 Failed shipping) |
 | **Phase 3: Checkout (10 orders)** | Sync (10 Threads) | TBD | Will be updated in Phase 3 |
+
+---
+
+## 4. Task 8.5 Analysis: Task.Run for CPU-Bound vs. I/O-Bound Work
+
+### Why `Task.Run()` fits Invoice Generation:
+- **CPU-Bound Nature:** Rendering the invoice involves 20,000,000 intensive mathematical iterations. The CPU core is actively computing during this entire duration.
+- **Offloading to Worker Threads:** Calling `Task.Run()` queues this heavy computation onto the .NET `ThreadPool`. On multi-core systems, this distributes the computational workload across all available CPU cores without stalling the initiating thread or blocking asynchronous workflow progression.
+
+### Why `Task.Run()` is WRONG for Database and I/O Calls:
+- **No CPU Work During I/O:** When executing database queries or reading files, the system is fundamentally waiting for storage hardware controllers or remote network packets.
+- **Zero-Thread Async I/O (IOCP):** Genuine asynchronous APIs (`File.ReadAllTextAsync`, socket reads, etc.) rely on OS kernel completion ports (Windows IOCP). While the hardware transfers bytes into memory, **zero CPU threads are occupied or blocked**.
+- **The "Sync-Over-Async" Anti-Pattern:** Wrapping a blocking I/O call in `Task.Run(() => db.Query())` consumes and ties up an entire `ThreadPool` worker thread whose only purpose is to sit idle in a blocked state. Under heavy traffic (such as Black Friday order volume), this induces **Thread Pool Starvation**, causing massive latency spikes and destroying server throughput.
+
+---
+
+## 5. Phase 1 Questions & Answers
 | **Phase 3: Checkout (10 orders)** | Async (10 Tasks) | TBD | Will be updated in Phase 3 |
 | **Phase 4: Customer Dashboard** | Single await (WhenAll) | TBD | Will be updated in Phase 4 |
 | **Phase 4: Fastest Shipping Quote** | First to arrive (WhenAny) | TBD | Will be updated in Phase 4 |
