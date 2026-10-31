@@ -46,6 +46,7 @@ public class Program
                 break;
             case "phase2":
                 Log.Info("Executing Phase 2...");
+                // Phase 2 runner will be hooked up in Task 8.4
                 break;
             case "phase3":
                 Log.Info("Executing Phase 3...");

@@ -54,25 +54,21 @@ All files are stored under `Path.Combine(AppContext.BaseDirectory, "Data")`:
 
 ---
 
-## 3. Phase 1 — Validation Summary & Measurements
+## 3. Performance Measurements Table
 
-### Measured Output:
-```text
-===== Validation Summary =====
-Total Orders: 20
-Validated:    15
-Rejected:     5
- - Order #4: Customer is inactive
- - Order #9: Insufficient stock for 'Wireless Mouse'
- - Order #12: Coupon 'OLD20' has expired
- - Order #15: Customer #99 not found
- - Order #18: Coupon 'FAKE50' does not exist
-Sync Time:  33.9 seconds
-Async Time: 52.5 seconds
-orders.json now contains 20 records.
-```
-
-*(Note: The async run in Task 7.3 sequentially saves all 20 orders to `orders.json` with full DB write latency steps amounting to ~18s of additional file writing, while the sync run evaluates validation rules without saving).*
+| Phase & Operation | Mode | Time (s) | Notes / Details |
+|---|---|---|---|
+| **Phase 1: Validation** | Sync (Thread.Sleep) | 33.9 s | 20 orders sequentially validated (not saved) |
+| **Phase 1: Validation** | Async (Task.Delay) | 52.5 s | 20 orders validated & saved to orders.json sequentially |
+| **Phase 2: Pricing (Order #1)** | Sequential Awaits | 4.78 s | SubTotal -> Discount -> Shipping |
+| **Phase 2: Pricing (Order #1)** | Concurrent Awaits | 3.52 s | SubTotal -> [Discount // Shipping] concurrently (1.36x speedup) |
+| **Phase 2: Full Concurrent Batch** | Concurrent Tasks | TBD | Will be updated in Task 8.4 |
+| **Phase 3: Checkout (10 orders)** | Sync (10 Threads) | TBD | Will be updated in Phase 3 |
+| **Phase 3: Checkout (10 orders)** | Async (10 Tasks) | TBD | Will be updated in Phase 3 |
+| **Phase 4: Customer Dashboard** | Single await (WhenAll) | TBD | Will be updated in Phase 4 |
+| **Phase 4: Fastest Shipping Quote** | First to arrive (WhenAny) | TBD | Will be updated in Phase 4 |
+| **Phase 4: Fraud Scoring** | Sequential vs Parallel | TBD | Will be updated in Phase 4 |
+| **Phase 4: Email Re-send** | Limited concurrency (4 max) | TBD | Will be updated in Phase 4 |
 
 ---
 

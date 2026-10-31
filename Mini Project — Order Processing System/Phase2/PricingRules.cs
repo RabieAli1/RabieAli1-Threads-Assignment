@@ -59,3 +59,4 @@ public static class PricingRules
         return RoundMoney(subTotal - discount + shippingCost);
     }
 }
+
